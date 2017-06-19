@@ -12,6 +12,8 @@ from coalib.settings.Setting import typed_list
 from coalib.parsing.Globbing import fnmatch
 from coalib.settings.Setting import typed_dict
 
+from urlextract import URLExtract
+
 
 class LinkContext(Flag):
     xml_namespace = 1
@@ -23,7 +25,8 @@ class URLBear(LocalBear):
     DEFAULT_TIMEOUT = 15
     LANGUAGES = {'All'}
     REQUIREMENTS = {PipRequirement('requests', '2.12'),
-                    PipRequirement('aenum', '2.0.8')}
+                    PipRequirement('aenum', '2.0.8'),
+                    PipRequirement('urlextract', '0.3.2.6')}
     AUTHORS = {'The coala developers'}
     AUTHORS_EMAILS = {'coala-devel@googlegroups.com'}
     LICENSE = 'AGPL-3.0'
@@ -55,8 +58,7 @@ class URLBear(LocalBear):
         return splitted_schema
 
     @staticmethod
-    def extract_links_from_file(file, link_ignore_regex, link_ignore_list):
-        link_ignore_regex = re.compile(link_ignore_regex)
+    def extract_links_from_line(line):
         regex = re.compile(
             r"""
             ((git\+|bzr\+|svn\+|hg\+|)  # For VCS URLs
@@ -84,11 +86,26 @@ class URLBear(LocalBear):
                                         # Unbalanced parenthesis
             (?<!\.)(?<!,)               # Exclude trailing `.` or `,` from URL
             """, re.VERBOSE)
+        for match in re.findall(regex, line):
+            link = match[0]
+            yield link
+
+    @staticmethod
+    def extract_links_from_line_urlextract(line):
+        return URLExtract().find_urls(line)
+
+    @staticmethod
+    def extract_links_from_file(file, link_ignore_regex, link_ignore_list,
+                                use_library):
+        link_ignore_regex = re.compile(link_ignore_regex)
+
+        find_links_method = (URLBear.extract_links_from_line_urlextract if
+                             use_library else
+                             URLBear.extract_links_from_line)
         file_context = {}
         for line_number, line in enumerate(file):
             xmlns_regex = re.compile(r'xmlns:?\w*="(.*)"')
-            for match in re.findall(regex, line):
-                link = match[0]
+            for link in find_links_method(line):
                 link_context = file_context.get(link)
                 if not link_context:
                     link_context = (LinkContext.xml_namespace |
@@ -104,9 +121,9 @@ class URLBear(LocalBear):
                     yield link, line_number, link_context
 
     def analyze_links_in_file(self, file, network_timeout, link_ignore_regex,
-                              link_ignore_list):
+                              link_ignore_list, use_library):
         for link, line_number, link_context in self.extract_links_from_file(
-                file, link_ignore_regex, link_ignore_list):
+                file, link_ignore_regex, link_ignore_list, use_library):
 
             if (link_context in [link_context.pip_vcs_url,
                                  link_context.all_flags]):
@@ -127,7 +144,8 @@ class URLBear(LocalBear):
     def run(self, filename, file,
             network_timeout: typed_dict(str, int, DEFAULT_TIMEOUT)=dict(),
             link_ignore_regex: str='([.\/]example\.com|\{|\$)',
-            link_ignore_list: typed_list(str)=''):
+            link_ignore_list: typed_list(str)='',
+            use_library: bool=True):
         """
         Find links in any text file.
 
@@ -147,11 +165,15 @@ class URLBear(LocalBear):
                                       '*'.
         :param link_ignore_regex:     A regex for urls to ignore.
         :param link_ignore_list: Comma separated url globs to ignore
+        :param use_library:           A boolean value, set to True to use
+                                      `urlextract` for finding links, or False
+                                      to use URLBear regex matcher.
         """
         network_timeout = {urlparse(url).netloc
                            if not url == '*' else '*': timeout
                            for url, timeout in network_timeout.items()}
 
         for line_number, link, code, context in self.analyze_links_in_file(
-                file, network_timeout, link_ignore_regex, link_ignore_list):
+                file, network_timeout, link_ignore_regex, link_ignore_list,
+                use_library):
             yield HiddenResult(self, [line_number, link, code, context])
