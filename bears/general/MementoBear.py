@@ -6,6 +6,7 @@ from coalib.bears.LocalBear import LocalBear
 from coalib.settings.Setting import typed_dict
 from coalib.settings.Setting import typed_list
 from coalib.results.Result import Result
+from coalib.results.HiddenResult import HiddenResult
 from coalib.results.RESULT_SEVERITY import RESULT_SEVERITY
 
 from dependency_management.requirements.PipRequirement import PipRequirement
@@ -85,6 +86,8 @@ class MementoBear(LocalBear):
             if code and 200 <= code < 400:
                 status = MementoBear.check_archive(self._mc, link)
                 if not status:
+                    yield HiddenResult(self, dict(unarchived_url=link,
+                                                  line_number=line_number))
                     yield Result.from_values(
                         self,
                         ('This link is not archived yet, visit '
@@ -101,6 +104,10 @@ class MementoBear(LocalBear):
                     for url in redirect_urls:
                         status = MementoBear.check_archive(self._mc, url)
                         if not status:
+                            yield HiddenResult(
+                                self,
+                                dict(unarchived_url=link,
+                                     line_number=line_number))
                             yield Result.from_values(
                                 self,
                                 ('This link redirects to %s and not archived'
