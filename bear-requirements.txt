@@ -4,6 +4,7 @@ apertium-lint~=0.29
 autoflake~=0.7
 autopep8~=1.2
 bandit~=1.2
+cfscrape~=1.9.0
 click==6.6
 cmakelint~=1.3
 cppclean~=0.12.0
@@ -17,6 +18,7 @@ isort~=4.2
 language-check~=1.0
 lxml==3.6.0
 memento_client~=0.6.1
+mock~=2.0.0
 munkres3~=1.0
 mypy-lang~=0.4.6
 nbformat~=4.1
@@ -33,6 +35,7 @@ restructuredtext-lint~=1.0.0
 rstcheck~=3.1
 safety~=0.5.1
 scspell3k~=2.0
+tubeup~=0.0.10
 vim-vint~=0.3.12
 vulture~=0.25.0
 yamllint~=1.6.1
