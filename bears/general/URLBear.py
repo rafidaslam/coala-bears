@@ -28,9 +28,6 @@ class URLBear(LocalBear):
     LICENSE = 'AGPL-3.0'
     CAN_DETECT = {'Documentation'}
 
-    # IP Address of www.google.com
-    check_connection_url = 'http://216.58.218.174'
-
     @classmethod
     def check_prerequisites(cls):
         code = cls.get_status_code(
@@ -124,7 +121,8 @@ class URLBear(LocalBear):
     def run(self, filename, file,
             network_timeout: typed_dict(str, int, DEFAULT_TIMEOUT)=dict(),
             link_ignore_regex: str='([.\/]example\.com|\{|\$)',
-            link_ignore_list: typed_list(str)=''):
+            link_ignore_list: typed_list(str)='',
+            check_connection_url: str='http://216.58.218.174'):
         """
         Find links in any text file.
 
@@ -144,6 +142,10 @@ class URLBear(LocalBear):
                                       '*'.
         :param link_ignore_regex:     A regex for urls to ignore.
         :param link_ignore_list: Comma separated url globs to ignore
+        :param check_connection_url:  An url to check that internet connection
+                                      is connected. Default to
+                                      http://216.58.218.174 (IP address of
+                                      Google).
         """
         network_timeout = {urlparse(url).netloc
                            if not url == '*' else '*': timeout
