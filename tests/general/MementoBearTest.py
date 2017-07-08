@@ -6,6 +6,7 @@ import requests_mock
 import unittest
 
 from bears.general.MementoBear import MementoBear
+from bears.general.MementoFetchBear import MementoFetchBear
 from bears.general.URLBear import URLBear
 
 from coalib.results.Result import Result
@@ -249,7 +250,7 @@ class MementoBearTest(LocalBearTestHelper):
             memento_archive_status_mock(m, 'http://redirect9times.com')
             generate_redirects(m, 'http://redirect9times.com', 9)
 
-            redirect_links = MementoBear.get_redirect_urls(
+            redirect_links = MementoFetchBear.get_redirect_urls(
                 'http://redirect9times.com')
             self.assertTrue(len(redirect_links) == 9)
 
