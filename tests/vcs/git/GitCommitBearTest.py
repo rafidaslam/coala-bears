@@ -87,62 +87,73 @@ class GitCommitBearTest(unittest.TestCase):
         git_error = self.msg_queue.get().message
         self.assertEqual(git_error[:4], 'git:')
 
-        self.assert_no_msgs()
-
     def test_empty_message(self):
         self.git_commit('')
 
         self.assertEqual(self.run_uut(),
-                         ['HEAD commit has no message.'])
+                         ['HEAD commit information',
+                          'HEAD commit has no message.'])
         self.assert_no_msgs()
 
         self.assertEqual(self.run_uut(allow_empty_commit_message=True),
-                         [])
+                         ['HEAD commit information'])
         self.assert_no_msgs()
 
     def test_shortlog_checks_length(self):
         self.git_commit('Commit messages that nearly exceed default limit..')
 
-        self.assertEqual(self.run_uut(), [])
+        self.assertEqual(self.run_uut(), ['HEAD commit information'])
         self.assert_no_msgs()
 
         self.assertEqual(self.run_uut(shortlog_length=17),
-                         ['Shortlog of the HEAD commit contains 50 '
+                         ['HEAD commit information',
+                          'Shortlog of the HEAD commit contains 50 '
                           'character(s). This is 33 character(s) longer than '
                           'the limit (50 > 17).'])
         self.assert_no_msgs()
 
         self.git_commit('Add a very long shortlog for a bad project history.')
         self.assertEqual(self.run_uut(),
-                         ['Shortlog of the HEAD commit contains 51 '
+                         ['HEAD commit information',
+                          'Shortlog of the HEAD commit contains 51 '
                           'character(s). This is 1 character(s) longer than '
                           'the limit (51 > 50).'])
         self.assert_no_msgs()
 
     def test_shortlog_checks_shortlog_trailing_period(self):
         self.git_commit('Shortlog with dot.')
-        self.assertEqual(self.run_uut(shortlog_trailing_period=True), [])
+        self.assertEqual(self.run_uut(shortlog_trailing_period=True),
+                         ['HEAD commit information'])
         self.assertEqual(self.run_uut(shortlog_trailing_period=False),
-                         ['Shortlog of HEAD commit contains a period at end.'])
-        self.assertEqual(self.run_uut(shortlog_trailing_period=None), [])
+                         ['HEAD commit information',
+                          'Shortlog of HEAD commit contains a period at end.'])
+        self.assertEqual(self.run_uut(shortlog_trailing_period=None),
+                         ['HEAD commit information'])
 
         self.git_commit('Shortlog without dot')
         self.assertEqual(
             self.run_uut(shortlog_trailing_period=True),
-            ['Shortlog of HEAD commit contains no period at end.'])
-        self.assertEqual(self.run_uut(shortlog_trailing_period=False), [])
-        self.assertEqual(self.run_uut(shortlog_trailing_period=None), [])
+            ['HEAD commit information',
+             'Shortlog of HEAD commit contains no period at end.'])
+        self.assertEqual(self.run_uut(shortlog_trailing_period=False),
+                         ['HEAD commit information'])
+        self.assertEqual(self.run_uut(shortlog_trailing_period=None),
+                         ['HEAD commit information'])
 
     def test_shortlog_wip_check(self):
         self.git_commit('[wip] Shortlog')
-        self.assertEqual(self.run_uut(shortlog_wip_check=False), [])
+        self.assertEqual(self.run_uut(shortlog_wip_check=False),
+                         ['HEAD commit information'])
         self.assertEqual(self.run_uut(shortlog_wip_check=True),
-                         ['This commit seems to be marked as work in progress '
+                         ['HEAD commit information',
+                          'This commit seems to be marked as work in progress '
                           'and should not be used in production. Treat '
                           'carefully.'])
-        self.assertEqual(self.run_uut(shortlog_wip_check=None), [])
+        self.assertEqual(self.run_uut(shortlog_wip_check=None),
+                         ['HEAD commit information'])
         self.git_commit('Shortlog as usual')
-        self.assertEqual(self.run_uut(shortlog_wip_check=True), [])
+        self.assertEqual(self.run_uut(shortlog_wip_check=True),
+                         ['HEAD commit information'])
 
     def test_shortlog_checks_imperative(self):
         self.git_commit('tag: Add shortlog in imperative')
@@ -166,29 +177,34 @@ class GitCommitBearTest(unittest.TestCase):
         pattern = '.*?: .*[^.]'
 
         self.git_commit('tag: message')
-        self.assertEqual(self.run_uut(shortlog_regex=pattern), [])
+        self.assertEqual(self.run_uut(shortlog_regex=pattern),
+                         ['HEAD commit information'])
 
         self.git_commit('tag: message invalid.')
         self.assertEqual(
             self.run_uut(shortlog_regex=pattern),
-            ['Shortlog of HEAD commit does not match given regex: {regex}'
+            ['HEAD commit information',
+             'Shortlog of HEAD commit does not match given regex: {regex}'
              .format(regex=pattern)])
 
         self.git_commit('SuCkS cOmPleTely')
         self.assertEqual(
             self.run_uut(shortlog_regex=pattern),
-            ['Shortlog of HEAD commit does not match given regex: {regex}'
+            ['HEAD commit information',
+             'Shortlog of HEAD commit does not match given regex: {regex}'
              .format(regex=pattern)])
         # Check for full-matching.
         pattern = 'abcdefg'
 
         self.git_commit('abcdefg')
-        self.assertEqual(self.run_uut(shortlog_regex=pattern), [])
+        self.assertEqual(self.run_uut(shortlog_regex=pattern),
+                         ['HEAD commit information'])
 
         self.git_commit('abcdefgNO MATCH')
         self.assertEqual(
             self.run_uut(shortlog_regex=pattern),
-            ['Shortlog of HEAD commit does not match given regex: {regex}'
+            ['HEAD commit information',
+             'Shortlog of HEAD commit does not match given regex: {regex}'
              .format(regex=pattern)])
 
     def test_body_checks(self):
@@ -197,24 +213,26 @@ class GitCommitBearTest(unittest.TestCase):
             'nearly exceeding the default length of a body, but not quite. '
             'haaaaaands')
 
-        self.assertEqual(self.run_uut(), [])
+        self.assertEqual(self.run_uut(), ['HEAD commit information'])
         self.assert_no_msgs()
 
         self.git_commit('Shortlog only')
 
-        self.assertEqual(self.run_uut(), [])
+        self.assertEqual(self.run_uut(), ['HEAD commit information'])
         self.assert_no_msgs()
 
         # Force a body.
         self.git_commit('Shortlog only ...')
         self.assertEqual(self.run_uut(force_body=True),
-                         ['No commit message body at HEAD.'])
+                         ['HEAD commit information',
+                          'No commit message body at HEAD.'])
         self.assert_no_msgs()
 
         # Miss a newline between shortlog and body.
         self.git_commit('Shortlog\nOops, body too early')
         self.assertEqual(self.run_uut(),
-                         ['No newline found between shortlog and body at '
+                         ['HEAD commit information',
+                          'No newline found between shortlog and body at '
                           'HEAD commit. Please add one.'])
         self.assert_no_msgs()
 
@@ -224,7 +242,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'This line is by far too long (in this case).\n'
                         'This one too, blablablablablablablablabla.')
         self.assertEqual(self.run_uut(body_line_length=41),
-                         ['Body of HEAD commit contains too long lines. '
+                         ['HEAD commit information',
+                          'Body of HEAD commit contains too long lines. '
                           'Commit body lines should not exceed 41 '
                           'characters.'])
         self.assert_no_msgs()
@@ -235,7 +254,7 @@ class GitCommitBearTest(unittest.TestCase):
                         'This line is by far too long (in this case).')
         self.assertEqual(self.run_uut(body_line_length=41,
                                       ignore_length_regex=('^.*too long',)),
-                         [])
+                         ['HEAD commit information'])
         self.assertTrue(self.msg_queue.empty())
 
         # body_regex, not fully matched
@@ -245,7 +264,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Fix 1112')
         self.assertEqual(self.run_uut(
                              body_regex=r'Fix\s+[1-9][0-9]*\s*'),
-                         ['No match found in commit message for the regular '
+                         ['HEAD commit information',
+                          'No match found in commit message for the regular '
                           r'expression provided: Fix\s+[1-9][0-9]*\s*'])
         self.assert_no_msgs()
 
@@ -254,7 +274,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'TICKER\n'
                         'CLOSE 2017')
         self.assertEqual(self.run_uut(
-                             body_regex=r'TICKER\s*CLOSE\s+[1-9][0-9]*'), [])
+                             body_regex=r'TICKER\s*CLOSE\s+[1-9][0-9]*'),
+                         ['HEAD commit information'])
         self.assert_no_msgs()
 
     def test_check_issue_reference(self):
@@ -263,7 +284,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'First line, blablablablablabla.\n'
                         'Another line, blablablablablabla.\n'
                         'Closes #01112')
-        self.assertEqual(self.run_uut(body_close_issue=True), [])
+        self.assertEqual(self.run_uut(body_close_issue=True),
+                         ['HEAD commit information'])
 
         # Adding BitBucket remote for testing
         self.run_git_command('remote', 'add', 'test',
@@ -276,7 +298,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Host bitbucket does not support full issue '
+                         ['HEAD commit information',
+                          'Host bitbucket does not support full issue '
                           'reference.'])
 
         self.git_commit('Shortlog\n\n'
@@ -284,7 +307,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Another line, blablablablablabla.\n'
                         'Closes #1112')
         self.assertEqual(self.run_uut(
-                             body_close_issue=True), [])
+                             body_close_issue=True),
+                         ['HEAD commit information'])
 
         self.git_commit('Shortlog\n\n'
                         'First line, blablablablablabla.\n'
@@ -292,7 +316,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Resolves https://bitbucket.org/user/repo/issues/1/')
         self.assertEqual(self.run_uut(
                              body_close_issue=True),
-                         ['Invalid issue reference: '
+                         ['HEAD commit information',
+                          'Invalid issue reference: '
                           'https://bitbucket.org/user/repo/issues/1/'])
 
         self.git_commit('Shortlog\n\n'
@@ -302,7 +327,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Host bitbucket does not support full issue '
+                         ['HEAD commit information',
+                          'Host bitbucket does not support full issue '
                           'reference.'])
 
         # Adding BitBucket's ssh remote for testing
@@ -316,7 +342,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Host bitbucket does not support full issue '
+                         ['HEAD commit information',
+                          'Host bitbucket does not support full issue '
                           'reference.'])
 
         self.git_commit('Shortlog\n\n'
@@ -324,7 +351,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Another line, blablablablablabla.\n'
                         'Closes #1112')
         self.assertEqual(self.run_uut(
-                             body_close_issue=True), [])
+                             body_close_issue=True),
+                         ['HEAD commit information'])
 
         self.git_commit('Shortlog\n\n'
                         'First line, blablablablablabla.\n'
@@ -332,7 +360,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Fix issue #1112')
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
-                             body_enforce_issue_reference=True), [])
+                             body_enforce_issue_reference=True),
+                         ['HEAD commit information'])
 
         self.git_commit('Shortlog\n\n'
                         'First line, blablablablablabla.\n'
@@ -341,7 +370,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_enforce_issue_reference=True),
-                         ['Invalid issue reference: bug#1112'])
+                         ['HEAD commit information',
+                          'Invalid issue reference: bug#1112'])
 
         self.git_commit('Shortlog\n\n'
                         'First line, blablablablablabla.\n'
@@ -350,7 +380,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_enforce_issue_reference=True),
-                         ['Invalid issue reference: randomkeyword#1112'])
+                         ['HEAD commit information',
+                          'Invalid issue reference: randomkeyword#1112'])
 
         self.git_commit('Shortlog\n\n'
                         'First line, blablablablablabla.\n'
@@ -359,7 +390,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_enforce_issue_reference=True),
-                         ['Body of HEAD commit does not contain any '
+                         ['HEAD commit information',
+                          'Body of HEAD commit does not contain any '
                           'issue reference.'])
 
         self.git_commit('Shortlog\n\n'
@@ -369,7 +401,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_enforce_issue_reference=True),
-                         ['Invalid issue reference: bug'])
+                         ['HEAD commit information',
+                          'Invalid issue reference: bug'])
 
         self.git_commit('Shortlog\n\n'
                         'First line, blablablablablabla.\n'
@@ -378,7 +411,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_enforce_issue_reference=True),
-                         ['Body of HEAD commit does not contain any '
+                         ['HEAD commit information',
+                          'Body of HEAD commit does not contain any '
                           'issue reference.'])
 
         self.git_commit('Shortlog\n\n'
@@ -387,7 +421,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Resolves https://bitbucket.org/user/repo/issues/1/')
         self.assertEqual(self.run_uut(
                              body_close_issue=True),
-                         ['Invalid issue reference: '
+                         ['HEAD commit information',
+                          'Invalid issue reference: '
                           'https://bitbucket.org/user/repo/issues/1/'])
 
         self.git_commit('Shortlog\n\n'
@@ -397,7 +432,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Host bitbucket does not support full issue '
+                         ['HEAD commit information',
+                          'Host bitbucket does not support full issue '
                           'reference.'])
 
         # Adding GitHub remote for testing, ssh way :P
@@ -412,7 +448,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'and https://github.com/usr/repo/issues/1312')
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
-                             body_close_issue_full_url=True), [])
+                             body_close_issue_full_url=True),
+                         ['HEAD commit information'])
 
         # No keywords and no issues
         self.git_commit('Shortlog\n\n'
@@ -422,13 +459,15 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True,
-                             body_close_issue_on_last_line=True), [])
+                             body_close_issue_on_last_line=True),
+                         ['HEAD commit information'])
         self.assert_no_msgs()
 
         # No keywords, no issues, no body
         self.git_commit('Shortlog only')
         self.assertEqual(self.run_uut(body_close_issue=True,
-                                      body_close_issue_on_last_line=True), [])
+                                      body_close_issue_on_last_line=True),
+                         ['HEAD commit information'])
         self.assert_no_msgs()
 
         # Has keyword but no valid issue URL
@@ -439,7 +478,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Invalid full issue reference: '
+                         ['HEAD commit information',
+                          'Invalid full issue reference: '
                           'https://github.com/user/repo.git'])
         self.assert_no_msgs()
 
@@ -448,7 +488,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'First line, blablablablablabla.\n'
                         'Another line, blablablablablabla.\n'
                         'Fix #1112, #1115 and #123')
-        self.assertEqual(self.run_uut(body_close_issue=True,), [])
+        self.assertEqual(self.run_uut(body_close_issue=True,),
+                         ['HEAD commit information'])
 
         # GitHub host with invalid short issue tag
         self.git_commit('Shortlog\n\n'
@@ -456,7 +497,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Another line, blablablablablabla.\n'
                         'Fix #01112 and #111')
         self.assertEqual(self.run_uut(body_close_issue=True,),
-                         ['Invalid issue number: #01112'])
+                         ['HEAD commit information',
+                          'Invalid issue number: #01112'])
         self.assert_no_msgs()
 
         # GitHub host with no full issue reference
@@ -467,7 +509,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Invalid full issue reference: #1112'])
+                         ['HEAD commit information',
+                          'Invalid full issue reference: #1112'])
         self.assert_no_msgs()
 
         # Invalid characters in issue number
@@ -478,7 +521,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Invalid full issue reference: #1112-3'])
+                         ['HEAD commit information',
+                          'Invalid full issue reference: #1112-3'])
         self.assert_no_msgs()
 
         # Adding GitLab remote for testing
@@ -493,7 +537,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'and https://gitlab.com/usr/repo/issues/1312')
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
-                             body_close_issue_full_url=True), [])
+                             body_close_issue_full_url=True),
+                         ['HEAD commit information'])
 
         # Invalid issue number in URL
         self.git_commit('Shortlog\n\n'
@@ -504,7 +549,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Invalid full issue reference: '
+                         ['HEAD commit information',
+                          'Invalid full issue reference: '
                           'https://gitlab.com/user/repo/issues/not_num'])
         self.assert_no_msgs()
 
@@ -516,7 +562,8 @@ class GitCommitBearTest(unittest.TestCase):
         self.assertEqual(self.run_uut(
                              body_close_issue=True,
                              body_close_issue_full_url=True),
-                         ['Invalid full issue reference: '
+                         ['HEAD commit information',
+                          'Invalid full issue reference: '
                           'www.google.com/issues/hehehe'])
         self.assert_no_msgs()
 
@@ -526,7 +573,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Another line, blablablablablabla.\n'
                         'Resolve #11 and close #notnum')
         self.assertEqual(self.run_uut(body_close_issue=True,),
-                         ['Invalid issue reference: #notnum'])
+                         ['HEAD commit information',
+                          'Invalid issue reference: #notnum'])
         self.assert_no_msgs()
 
         # Close issues in other repos
@@ -534,7 +582,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'First line, blablablablablabla.\n'
                         'Another line, blablablablablabla.\n'
                         'Resolve #11 and close github/gitter#32')
-        self.assertEqual(self.run_uut(body_close_issue=True,), [])
+        self.assertEqual(self.run_uut(body_close_issue=True,),
+                         ['HEAD commit information'])
         self.assert_no_msgs()
 
         # Incorrect close issue other repo pattern
@@ -543,7 +592,8 @@ class GitCommitBearTest(unittest.TestCase):
                         'Another line, blablablablablabla.\n'
                         'Fix #11 and close github#32')
         self.assertEqual(self.run_uut(body_close_issue=True,),
-                         ['Invalid issue reference: github#32'])
+                         ['HEAD commit information',
+                          'Invalid issue reference: github#32'])
         self.assert_no_msgs()
 
         # Last line enforce full URL
@@ -556,7 +606,8 @@ class GitCommitBearTest(unittest.TestCase):
                              body_close_issue_full_url=True,
                              body_close_issue_on_last_line=True,
                              body_enforce_issue_reference=True),
-                         ['Body of HEAD commit does not contain any full issue'
+                         ['HEAD commit information',
+                          'Body of HEAD commit does not contain any full issue'
                           ' reference in the last line.'])
         self.assert_no_msgs()
 
@@ -571,7 +622,8 @@ class GitCommitBearTest(unittest.TestCase):
         # when section does have a project_dir
         self.section.append(Setting('project_dir', escape(self.gitdir, '\\')))
         self.assertEqual(self.run_uut(),
-                         ['Shortlog of the HEAD commit contains 51 '
+                         ['HEAD commit information',
+                          'Shortlog of the HEAD commit contains 51 '
                           'character(s). This is 1 character(s) longer than '
                           'the limit (51 > 50).'])
         self.assertEqual(get_config_directory(self.section),
