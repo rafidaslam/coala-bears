@@ -43,6 +43,10 @@ class InvalidLinkBear(LocalBear):
         """
         for result in dependency_results.get(URLHeadBear.name, []):
             line_number, link, code, context = result.contents
+            
+            if context is 'string':
+                pass
+
             if context is context.xml_namespace:
                 if code and 200 <= code < 300:
                     pass
