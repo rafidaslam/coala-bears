@@ -54,6 +54,7 @@ class ClangCloneDetectionBearTest(LocalBearTestHelper):
                                         self.assertEqual(results, [], msg))
 
     def test_clones(self):
+        self.maxDiff = 9999999
         clone_files = ['python_casing.c',
                        'several_duplicates.c',
                        's3c.c',
@@ -95,13 +96,13 @@ class ClangCloneDetectionBearTest(LocalBearTestHelper):
                 origin='ClangCloneDetectionBear',
                 message=result_msg_template.format(
                     file=clone_files[0],
-                    line=30,
+                    line=11,
                     function=(
-                        '_Py_bytes_capitalize(char *, char *, Py_ssize_t)'),
+                        '_Py_bytes_swapcase(char *, char *, Py_ssize_t)'),
                     difference=0.3044843508457327),
                 file=clone_files[0],
                 severity=RESULT_SEVERITY.MAJOR,
-                line=11,
+                line=files_results[0][0].affected_code[0].start.line,
                 debug_msg=files_results[0][0].debug_msg)],
 
             # several_duplicates.c
